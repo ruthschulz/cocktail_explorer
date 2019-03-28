@@ -1,7 +1,6 @@
 This was an interface developed in 2003 for my engineering honours thesis at the University of Queensland under the supervision of Dr Gordon Wyeth. It was a joint project with Polly Alexander, who built the cocktail maker.
 
-The code has been updated slightly from the 2003 code to compile and run using Visual Studio 2017, FreeGLUT, and GLEW.
-Some functionality has been removed, and the interface is currently a bit buggy, for example alphabetical order doesn't work properly.
+Refactor in progress, including updating data structures and changing structs to classes, using Visual Studio 2017, FreeGLUT, and GLEW.
 
 From the thesis and poster:
 
