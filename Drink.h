@@ -29,6 +29,7 @@ public:
 	~Drink() {};
 };
 
+// used to sort the drinks in alphabetical order, case invarient
 struct cicompare
 {
 	bool operator()(std::string const& lhsIn, std::string const& rhsIn) const

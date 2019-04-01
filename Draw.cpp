@@ -18,14 +18,9 @@ Draw::~Draw()
  * for this function.
  * also sets up an array of similarities.
  */
-int Draw::setVisibleDrinks(std::string name, std::map<std::string, Drink, cicompare>& possibleDrinks)
+int Draw::setVisibleDrinks(std::string name, DrinkList& drinks)
 {
 	// first element of movingButton is the center ball
-	int g, a, b, z, count, pos, m, check;
-	double count2, number, number2, limit, percent;
-	int numb;
-	int numVisibleDrinks{ 0 };
-
 	if (movingButtons.size() > 0) {
 		if (name == movingButtons.begin()->text) {
 			// already center ball, don't make any changes
@@ -40,123 +35,50 @@ int Draw::setVisibleDrinks(std::string name, std::map<std::string, Drink, cicomp
 
 	// new ball as center ball, need to make new set of moving balls, 
 	// possibly with positions from old set of moving balls
-	// first step is add center ball to newButtons
-	limit = 1.0;
-	numb = 0;
-	check = 0;
-	std::vector<DynamicBall> newButtons;
-	while ((numb < 10) || (numb > 30)) {
-		newButtons.clear();
-		std::map<std::string,Drink,cicompare>::iterator tmpDrink = possibleDrinks.find(name);
-		if (tmpDrink == possibleDrinks.end()) {
-			return movingButtons.size();
-		}
-		DynamicBall newBall = DynamicBall(0.0, 0.0, 0.0, 0.2,
-			(double)tmpDrink->second.numIngredients / 5.0,
-			0.0, 1.0 - ((double)tmpDrink->second.numIngredients / 5.0),
-			0.0, 0.0, 0.0, 0.0, name, tmpDrink->second.textIngredients, 0);
-		newButtons.insert(newButtons.begin(), newBall);
-		for (std::map<std::string, Drink, cicompare>::iterator itDrinks = possibleDrinks.begin();
-			itDrinks != possibleDrinks.end(); itDrinks++) {
-			// Determine visible objects and attractions for first center
-			int numSame = 0;
-			int numIngr1 = 0;
-			int numIngr2 = 0;
-			for (std::vector<std::string>::iterator itIngr1 = tmpDrink->second.ingredient.begin();
-				itIngr1 != tmpDrink->second.ingredient.end(); itIngr1++) {
-				numIngr2 = 0;
-				for (std::vector<std::string>::iterator itIngr2 = itDrinks->second.ingredient.begin();
-					itIngr2 != itDrinks->second.ingredient.end(); itIngr2++) {
-					if (*itIngr1 == *itIngr2) {
-						numSame++;
-					}
-					numIngr2++;
-				}
-				numIngr1++;
-			}
-				percent = ((double)numSame / (double)numIngr2 + (double)numSame / (double)numIngr1) / 2.0;
-			if (percent > limit)
-			{
-				//if center ball place at head of newButtons, else at end
-				if (itDrinks->first != name) {
-					if (itDrinks->second.visible == 1) {
-						// set position to old position
-						std::vector<DynamicBall>::iterator itThisButton = movingButtons.begin();
-						while (itThisButton->text != itDrinks->second.name)
-							itThisButton++;
-						newButtons.insert(newButtons.end(), *itThisButton);
-					}
-					else {
-						// new ball
-						DynamicBall newBall = DynamicBall(0.0, 0.0, 0.0, 0.2,
-							(double)itDrinks->second.numIngredients / 5.0,
-							0.0, 1.0 - ((double)itDrinks->second.numIngredients / 5.0),
-							0.0, 0.0, 0.0, 0.0, itDrinks->second.name, itDrinks->second.textIngredients, 0);
-						newButtons.insert(newButtons.end(), newBall);
-					}
-				}
-			}
-		}
-		//set the number of visible drinks
-		numVisibleDrinks = newButtons.size();
-		numb = numVisibleDrinks;
-		if (possibleDrinks.size() < 10) {
-			if (possibleDrinks.size() == numVisibleDrinks)
-				numb = 10;
-		}
-		if (check == 1) {
-			numb = 10;
-		}
-		if (numb > 30) {
-			// start with limit at 1.0 so can decrease from there
-			// if here, have jumped from <10 to >30 in one step
-			// so go back to previous list and exit
-			limit = limit + 0.05;
-			check = 1;
-		}
-		else {
-			limit = limit - 0.05;
-		}
+	std::vector<DynamicBall> newButtons = drinks.setMovingBalls(name);
 
-		if (limit <= 0) {
-			limit = 0.05;
-			check = 1;
-		}
-		if (limit > 1) {
-			limit = 1.0;
-			check = 1;
+	for (std::vector<DynamicBall>::iterator it = newButtons.begin(); it != newButtons.end(); it++) {
+		std::vector<DynamicBall>::iterator itThisButton = movingButtons.begin();
+		while ((itThisButton != movingButtons.end()) && (itThisButton->text != it->text))
+			itThisButton++;
+		if (itThisButton != movingButtons.end()) {
+			it->accx = itThisButton->accx;
+			it->accx = itThisButton->accx;
+			it->force = itThisButton->force;
+			it->forcetheta = itThisButton->forcetheta;
+			it->posx = itThisButton->posx;
+			it->posy = itThisButton->posy;
+			it->velx = itThisButton->velx;
+			it->vely = itThisButton->vely;
+			it->oldposx = itThisButton->oldposx;
+			it->oldposy = itThisButton->oldposy;
 		}
 	}
+
 	for (std::vector<DynamicBall>::iterator it = movingButtons.begin(); it != movingButtons.end(); it++) {
-		std::map<std::string, Drink, cicompare>::iterator itDrink1 = possibleDrinks.find(it->text);
-		if (itDrink1 != possibleDrinks.end()) {
-			itDrink1->second.visible = 0;
-		}
+		drinks.setVisible(it->text, 0);
 	}
 	movingButtons.clear();
 	for (std::vector<DynamicBall>::iterator it = newButtons.begin(); it != newButtons.end(); it++) {
 		movingButtons.insert(movingButtons.end(), *it);
 		// and set to visible in possibledrinks map
-		std::map<std::string, Drink, cicompare>::iterator itDrink1 = possibleDrinks.find(it->text);
-		if (itDrink1 != possibleDrinks.end()) {
-			itDrink1->second.visible = 1;
-		}
+		drinks.setVisible(it->text,1);
 	}
 	otherAttractions.clear();
 	//determine attractions between the visible objects that are not the center
 	for (std::vector<DynamicBall>::iterator it1 = movingButtons.begin(); it1 != movingButtons.end(); it1++) {
-		std::map<std::string, Drink, cicompare>::iterator itDrink1 = possibleDrinks.find(it1->text);
+		Drink drink1 = drinks.getDrink(it1->text);
 		for (std::vector<DynamicBall>::iterator it2 = it1; it2 != movingButtons.end(); it2++) {
-			std::map<std::string, Drink, cicompare>::iterator itDrink2 = possibleDrinks.find(it2->text);
-			if (it1 != it2) {
+			Drink drink2 = drinks.getDrink(it2->text);
+			if ((it1 != it2) && (drink1.name != "null") && (drink2.name != "null")) {
 				int numSame = 0;
 				int numIngr1 = 0;
 				int numIngr2 = 0;
-				for (std::vector<std::string>::iterator itIngr1 = itDrink1->second.ingredient.begin();
-					itIngr1 != itDrink1->second.ingredient.end(); itIngr1++) {
+				for (std::vector<std::string>::iterator itIngr1 = drink1.ingredient.begin();
+					itIngr1 != drink1.ingredient.end(); itIngr1++) {
 					numIngr2 = 0;
-					for (std::vector<std::string>::iterator itIngr2 = itDrink2->second.ingredient.begin();
-						itIngr2 != itDrink2->second.ingredient.end(); itIngr2++) {
+					for (std::vector<std::string>::iterator itIngr2 = drink2.ingredient.begin();
+						itIngr2 != drink2.ingredient.end(); itIngr2++) {
 						if (*itIngr1 == *itIngr2) {
 							numSame++;
 						}
@@ -164,25 +86,12 @@ int Draw::setVisibleDrinks(std::string name, std::map<std::string, Drink, cicomp
 					}
 					numIngr1++;
 				}
-				otherAttractions[std::make_pair(it1->text, it2->text)] = numSame / (double)(itDrink2->second.numIngredients);
-				otherAttractions[std::make_pair(it2->text, it1->text)] = numSame / (double)(itDrink2->second.numIngredients);
+				otherAttractions[std::make_pair(it1->text, it2->text)] = numSame / (double)(drink2.numIngredients);
+				otherAttractions[std::make_pair(it2->text, it1->text)] = numSame / (double)(drink1.numIngredients);
 			}
 		}
 	}
-	
-	//std::cout << "Number of Visible Drinks: " << movingButtons.size() << std::endl;
-
-	//for (std::vector<DynamicBall>::iterator it = movingButtons.begin(); it != movingButtons.end(); it++) {
-	//	std::cout << it->text << ", ";
-	//}
-
-	//std::cout << "Number of attractions: " << otherAttractions.size() << std::endl;
-	//for (std::map<std::pair<std::string, std::string>, double>::iterator it = otherAttractions.begin();
-	//	it != otherAttractions.end(); it++) {
-	//	std::cout << it->first.first << " and " << it->first.second << ":" << it->second << ";";
-	//}
-	
-	return numVisibleDrinks;
+	return buttons.size();
 }
 
 /*
@@ -195,20 +104,20 @@ void Draw::openingBalls(void)
 	Ball newBall;
 	buttons.clear();
 	int j = 0;
-	newBall.posx = x4;
+	newBall.posx = xcenter;
 	newBall.size = 0.7;
 	newBall.red = 1.0;
 	buttons.insert(buttons.end(), newBall);
 	next = j;
 	j++;
-	newBall.posx = x4 - 0.28;
+	newBall.posx = xcenter - 0.3;
 	newBall.size = 0.0;
 	newBall.red = 0.0;
 	newBall.text = "enter";
 	newBall.textSize = 1.0;
 	buttons.insert(buttons.end(), newBall);
 	j++;
-	newBall.posx = x4 - 1.2;
+	newBall.posx = xcenter - 2.5;
 	newBall.posy = 2.0;
 	newBall.textRed = 1.0;
 	newBall.textGreen = 1.0;
@@ -223,7 +132,7 @@ void Draw::openingBalls(void)
  * void choicesBalls(void)
  *
  * the initial choices of how to choose the drink
- * ie select ingredients, view all, make your own
+ * ie select ingredients, view all, starting with letter
  */
 void Draw::choicesBalls(void)
 {
@@ -234,7 +143,7 @@ void Draw::choicesBalls(void)
 	newBall.size = 0.3;
 	newBall.red = 0.5;
 	newBall.blue = 0.5;
-	newBall.posx = x1;
+	newBall.posx = xleft;
 	newBall.posy = yinit - (j + 2);
 	newBall.textRed = 1.0;
 	newBall.textGreen = 1.0;
@@ -256,7 +165,7 @@ void Draw::choicesBalls(void)
 	newBall.text = "Back to Start";
 	newBall.blue = 0.5;
 	newBall.red = 0.0;
-	newBall.posx = x1;
+	newBall.posx = xleft;
 	newBall.posy = yinit - 7.3;
 	newBall.size = 0.3;
 	newBall.textSize = 1.0;
@@ -268,8 +177,9 @@ void Draw::choicesBalls(void)
 /*
  * void showDrinks(void)
  *
+ * set up the static buttons when showing the drinks
  */
-void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, std::map<char, int> &alphabetInfo)
+void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, DrinkList& drinks)
 {
 	Ball newBall;
 	buttons.clear();
@@ -279,7 +189,7 @@ void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, std::map
 		newBall.size = 0.25;
 		newBall.red = 0.5;
 		newBall.blue = 0.5;
-		newBall.posx = x1 + 2.4;
+		newBall.posx = xleft + 2.4;
 		newBall.posy = yinit - 7.7;
 		newBall.textRed = 1.0;
 		newBall.textGreen = 1.0;
@@ -314,7 +224,7 @@ void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, std::map
 	newBall.nextText.clear();
 	newBall.blue = 0.5;
 	newBall.red = 0.0;
-	newBall.posx = x1 + 0.5;
+	newBall.posx = xleft + 0.5;
 	newBall.posy = yinit - 7.3;
 	newBall.size = 0.3;
 	newBall.textSize = 1.0;
@@ -340,10 +250,7 @@ void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, std::map
 		lastDrinks = j;
 		j++;
 		newBall.size = 0.0;
-		int a = ((letter-'a') +25)%26;
-		while (alphabetInfo.find(a+'a') == alphabetInfo.end()){
-			a = (a + 25) % 26;
-		}
+		int a = drinks.lastLetter(letter-'a');
 		char x = 'a' + a;
 		std::string tmp(1, x);
 		newBall.text = tmp;
@@ -368,10 +275,7 @@ void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, std::map
 		moreDrinks = j;
 		j++;
 		newBall.size = 0.0;
-		a = ((letter-'a') + 1) % 26;
-		while (alphabetInfo.find(a+'a') == alphabetInfo.end()){
-			a = (a + 1) % 26;
-		}
+		a = drinks.nextLetter(letter-'a');
 		x = 'a' + a;
 		std::string tmp2(1, x);
 		newBall.text = tmp2;
@@ -382,7 +286,12 @@ void Draw::showDrinks(bool drinksToShow, bool showLetters, char letter, std::map
 	}
 }
 
-void Draw::showAlphabet(std::map<char, int>& alphabetInfo)
+/*
+ * void showAlphabet(DrinkList& drinks)
+ *
+ * alphabet buttons for user to choose starting letter
+ */
+void Draw::showAlphabet(DrinkList& drinks)
 {
 	Ball newBall;
 	buttons.clear();
@@ -399,21 +308,21 @@ void Draw::showAlphabet(std::map<char, int>& alphabetInfo)
 
 	int k = 0;
 	for (int i = 0; i < 26; i++) {
-		if (alphabetInfo.find(i+'a')!=alphabetInfo.end()){
+		if (drinks.drinksWithLetter(i)){
 			if (k < 7) {
-				newBall.posx = x1 + k * 0.7;
+				newBall.posx = xleft + k * 0.7;
 				newBall.posy = yinit - 2.0;
 			}
 			else if (k < 14) {
-				newBall.posx = x1 + (k - 7)*0.7;
+				newBall.posx = xleft + (k - 7)*0.7;
 				newBall.posy = yinit - 3.0;
 			}
 			else if (k < 21) {
-				newBall.posx = x1 + (k - 14)*0.7;
+				newBall.posx = xleft + (k - 14)*0.7;
 				newBall.posy = yinit - 4.0;
 			}
 			else {
-				newBall.posx = x1 + (k - 21)*0.7;
+				newBall.posx = xleft + (k - 21)*0.7;
 				newBall.posy = yinit - 5.0;
 			}
 			k++;
@@ -437,7 +346,7 @@ void Draw::showAlphabet(std::map<char, int>& alphabetInfo)
 	newBall.text = "Main menu";
 	newBall.blue = 0.5;
 	newBall.red = 0.0;
-	newBall.posx = x1;
+	newBall.posx = xleft;
 	newBall.posy = yinit - 7.3;
 	newBall.size = 0.3;
 	newBall.textSize = 1.0;
@@ -446,7 +355,12 @@ void Draw::showAlphabet(std::map<char, int>& alphabetInfo)
 	j++;
 }
 
-int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::set<std::string>& selected)
+/*
+ * int Draw::drawIngredients(int ingrSet, DrinkList& drinks)
+ *
+ * ingredients buttons for user to choose included ingredients
+ */
+int Draw::drawIngredients(int ingrSet, DrinkList& drinks)
 {
 	Ball newBall;
 	buttons.clear();
@@ -454,106 +368,47 @@ int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::
 	int start, remaining;
 	int numIngredientsDisplayed = 0;
 
+	std::vector<Ball> ingrBalls = drinks.setIngrBalls(ingrSet);
+	numIngredientsDisplayed = ingrBalls.size();
+	for (int i = 0; i < numIngredientsDisplayed; i++) {
+		buttons.insert(buttons.end(), ingrBalls[i]);
+	}
 	start = 20 * ingrSet;
-	remaining = ingredients.size() - start;
+	remaining = drinks.numIngredients() - start;
 	moreDrinks = -1;
 	lastDrinks = -1;
-	std::set<std::string>::iterator it = ingredients.begin();
-	for (int i = 0; i < start; i++)
-		it++;
-	if (remaining < 20) {
-		numIngredientsDisplayed = remaining;
-		for (int i = 0; i < remaining;i++) {
-			newBall.text = *it;
-			newBall.red = 1.0;
-			if (i < remaining / 2) {
-				newBall.posx = x1;
-				newBall.posy = yinit - (i + 2)*0.5;
-			}
-			else {
-				newBall.posx = x2;
-				newBall.posy = yinit - ((i + 2) - (remaining / 2))*0.5;
-			}
-			newBall.size = 0.2;
-			if (selected.find(*it) != selected.end()){
-			//if (selected[i + start] == 1) {
-				newBall.red = 0.0;
-				newBall.blue = 1.0;
-				newBall.selected = 1;
-			}
-			else {
-				newBall.red = 1.0;
-				newBall.blue = 0.0;
-				newBall.selected = 0;
-			}
-			newBall.textRed = 1.0;
-			newBall.textBlue = 1.0;
-			newBall.textGreen = 1.0;
-			newBall.textSize = 0.8;
-			buttons.insert(buttons.end(), newBall);
-			it++;
-		}
-	}
-	else {
-		numIngredientsDisplayed = 20;
-		for (int i = 0; i < 20;i++) {
-			newBall.text = *it;
-			newBall.red = 1.0;
-			if (i < 10) {
-				newBall.posx = x1;
-				newBall.posy = yinit - (i + 2)*0.5;
-			}
-			else {
-				newBall.posx = x2;
-				newBall.posy = yinit - ((i + 2) - (10))*0.5;
-			}
-			newBall.size = 0.2;
-			if (selected.find(*it) != selected.end()) {
-				newBall.red = 0.0;
-				newBall.blue = 1.0;
-				newBall.selected = 1;
-			}
-			else {
-				newBall.red = 1.0;
-				newBall.blue = 0.0;
-				newBall.selected = 0;
-			}
-			newBall.textRed = 1.0;
-			newBall.textBlue = 1.0;
-			newBall.textGreen = 1.0;
-			newBall.textSize = 0.8;
-			buttons.insert(buttons.end(), newBall);
-			it++;
-		}
-
+	if (remaining > 20){
 		newBall.posy = yinit;
-		newBall.posx = x1;
+		newBall.posx = xleft;
 		newBall.size = 0.2;
 		newBall.red = 0.5;
 		newBall.blue = 1.0;
 		newBall.textSize = 1.0;
 		newBall.text = "more ingredients";
+		newBall.textRed = 1.0;
+		newBall.textBlue = 1.0;
+		newBall.textGreen = 1.0;
 		buttons.insert(buttons.end(), newBall);
-		moreDrinks = numIngredientsDisplayed;
+		moreDrinks = buttons.size()-1;
 	}
 	if (ingrSet != 0) {
-		newBall.posx = x1;
+		newBall.posx = xleft;
 		newBall.posy = yinit - 0.5;
 		newBall.size = 0.2;
 		newBall.red = 0.5;
 		newBall.green = 0.0;
 		newBall.blue = 1.0;
 		newBall.textSize = 1.0;
+		newBall.textRed = 1.0;
+		newBall.textBlue = 1.0;
+		newBall.textGreen = 1.0;
 		newBall.text = "previous ingredients";
 		buttons.insert(buttons.end(), newBall);
 		lastDrinks = buttons.size()-1;
 	}
-	else {
-		lastDrinks = -1;
-	}
 	newBall.text = "Select ingredients";
 	newBall.red = 0.0;
-	newBall.posx = x1;
+	newBall.posx = xleft;
 	newBall.posy = yinit + 0.5;
 	newBall.size = 0.0;
 	newBall.textSize = 1.5;
@@ -561,7 +416,7 @@ int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::
 	newBall.text = "View Drinks";
 	newBall.blue = 0.5;
 	newBall.red = 0.5;
-	newBall.posx = x1;
+	newBall.posx = xleft;
 	newBall.posy = yinit - (1 + 12)*0.5;
 	newBall.size = 0.3;
 	newBall.textRed = 1.0;
@@ -573,7 +428,7 @@ int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::
 	newBall.text = "with selected";
 	newBall.blue = 0.0;
 	newBall.red = 0.0;
-	newBall.posx = x1 + 0.5;
+	newBall.posx = xleft + 0.5;
 	newBall.posy = yinit - (1 + 12)*0.5 - 0.2;
 	newBall.size = 0.0;
 	newBall.textRed = 1.0;
@@ -584,7 +439,7 @@ int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::
 	newBall.text = " ingredients";
 	newBall.blue = 0.0;
 	newBall.red = 0.0;
-	newBall.posx = x1 + 0.5;
+	newBall.posx = xleft + 0.5;
 	newBall.posy = yinit - (1 + 12)*0.5 - 0.4;
 	newBall.size = 0.0;
 	newBall.textRed = 1.0;
@@ -594,7 +449,7 @@ int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::
 	buttons.insert(buttons.end(), newBall);
 	newBall.text = "Main menu";
 	newBall.blue = 0.5;
-	newBall.posx = x1;
+	newBall.posx = xleft;
 	newBall.posy = yinit - 7.3;
 	newBall.size = 0.3;
 	newBall.textSize = 1.0;
@@ -603,19 +458,194 @@ int Draw::drawIngredients(int ingrSet, std::set<std::string>& ingredients, std::
 	return numIngredientsDisplayed;
 }
 
-void Draw::setRandomDrinkCenter(std::map<std::string, Drink, cicompare>& possibleDrinks)
+int Draw::numButtons(void)
 {
-	int number;
-
-	double num = rand();
-	num = (num / 32767) * possibleDrinks.size();
-	number = (int)num;
-	std::map<std::string, Drink, cicompare>::iterator it = possibleDrinks.begin();
-	for (int i = 0; i < number; i++) {
-		it++;
-	}
-	setVisibleDrinks(it->first,possibleDrinks);
+	return buttons.size();
 }
 
+int Draw::numMovingButtons(void)
+{
+	return movingButtons.size();
+}
 
+std::string Draw::firstVisibleDrinkName(void)
+{
+	return movingButtons.begin()->text;
+}
 
+/*
+ * void moveBalls (void)
+ *
+ * for each of the balls, determine the new position from the forces acting
+ * on the ball, and redraw the ball in this position
+ */
+void Draw::moveBalls(void)
+{
+	double attrforce, attrforce1, attrforcex, attrforcey; // components of the attraction force
+	double dampforce;			// the damping force
+	double repforce, repforce1, repforcex, repforcey; // components of the repulsive force
+	double forcex, forcey;		// x and y components of the force on the ball
+	double attrtheta, attrtheta1, damptheta, reptheta, reptheta1;	// directions of the force components
+	double num;					// used when creating a new random number
+	double distance, velocity;	// used when determining the force on the ball
+	for (std::vector<DynamicBall>::iterator it = movingButtons.begin(); it != movingButtons.end(); it++) {
+		if (it != movingButtons.begin()) {
+			it->oldposx = it->posx;
+			it->oldposy = it->posy;
+			// initialise the repulsive force
+			repforce = 0.0;
+			reptheta = 0;
+			// add up all of the repulsive forces
+			for (std::vector<DynamicBall>::iterator it1 = movingButtons.begin();
+				it1 != movingButtons.end(); it1++) {
+				if (it != it1) {
+					// first make sure that the balls are not in the same x or y position
+					// if they are, add a random amount to the position (between -0.5 and 0.5)
+					if (it->posx == it1->posx) {
+						num = rand();
+						num = (num / 32767) - 0.5;
+						it->posx = it->posx + num;
+					}
+					if (it->posy == it1->posy) {
+						num = rand();
+						num = (num / 32767) - 0.5;
+						it->posy = it->posy + num;
+					}
+					// determine the distance between the two balls
+					distance = sqrt((it->posx - it1->posx) * (it->posx - it1->posx)
+						+ (it->posy - it1->posy) * (it->posy - it1->posy));
+					// determine the repulsive force and direction of the force
+					repforce1 = e / (fabs(distance) * distance);
+					reptheta1 = atan2(it->posy - it1->posy, it->posx - it1->posx);
+					// determine the x and y components of the force
+					repforcex = repforce * cos(reptheta) + repforce1 * cos(reptheta1);
+					repforcey = repforce * sin(reptheta) + repforce1 * sin(reptheta1);
+					// add to the sum of the repulsive forces so far
+					repforce = sqrt((repforcex * repforcex) + (repforcey * repforcey));
+					reptheta = atan2(repforcey, repforcex);
+				}
+			}
+			// work out force, acceleration, velocity and position
+			// determine attraction to center based on distance to center
+			distance = sqrt((it->posx * it->posx) + (it->posy * it->posy));
+			attrforce = -((k*otherAttractions[std::make_pair(firstVisibleDrinkName(), it->text)])*distance);
+			attrtheta = atan2(it->posy, it->posx);
+			//determine attraction to other balls based on distance
+			for (std::vector<DynamicBall>::iterator it1 = movingButtons.begin();
+				it1 != movingButtons.end(); it1++) {
+				if (it != it1) {
+					if ((otherAttractions[std::make_pair(firstVisibleDrinkName(), it->text)]) != 0) {
+						// first make sure that the balls are not in the same x or y position
+						// if they are, add a random amount to the position (between -0.5 and 0.5)
+						if (it->posx == it1->posx) {
+							num = rand();
+							num = (num / 32767) - 0.5;
+							it->posx = it->posx + num;
+						}
+						if (it->posy == it1->posy) {
+							num = rand();
+							num = (num / 32767) - 0.5;
+							it->posy = it->posy + num;
+						}
+						// determine the distance between the two balls
+						distance = sqrt((it->posx - it1->posx) * (it->posx - it1->posx)
+							+ (it->posy - it1->posy) * (it->posy - it1->posy));
+						// determine the repulsive force and direction of the force
+						attrforce1 = -((k*otherAttractions[std::make_pair(movingButtons.begin()->text, it->text)])*distance);
+						attrtheta1 = atan2(it->posy - it1->posy, it->posx - it1->posx);
+						// determine the x and y components of the force
+						attrforcex = attrforce * cos(attrtheta) + attrforce1 * cos(attrtheta1);
+						attrforcey = attrforce * sin(attrtheta) + attrforce1 * sin(attrtheta1);
+						// add to the sum of the repulsive forces so far
+						attrforce = sqrt((attrforcex * attrforcex) + (attrforcey * attrforcey));
+						attrtheta = atan2(attrforcey, attrforcex);
+					}
+				}
+			}
+			// determine damping force based on current velocity
+			velocity = sqrt((it->velx * it->velx) + (it->vely * it->vely));
+			dampforce = -(d*velocity);
+			damptheta = atan2(it->vely, it->velx);
+			// determine the x and y components of the force on the ball
+			forcex = attrforce * cos(attrtheta) + dampforce * cos(damptheta) + repforce * cos(reptheta);
+			forcey = attrforce * sin(attrtheta) + dampforce * sin(damptheta) + repforce * sin(reptheta);
+			// set the force and direction for the ball
+			it->force = sqrt((forcex * forcex) + (forcey * forcey));
+			it->forcetheta = atan2(forcey, forcex);
+			while (it->force > 1000) {
+				it->force = it->force / 10;
+			}
+			// set the acceleration for the ball
+			it->accx = it->force * cos(it->forcetheta) / it->mass;
+			it->accy = it->force * sin(it->forcetheta) / it->mass;
+			// set the velocity for the ball
+			it->velx = it->velx + it->accx * timestep;
+			it->vely = it->vely + it->accy * timestep;
+			// set the new position of the ball
+			it->posx = it->posx + it->velx * timestep;
+			it->posy = it->posy + it->vely * timestep;
+		}
+		else {
+			// put the center ball in the center position
+			distance = sqrt((it->posx * it->posx) + (it->posy * it->posy));
+			if (distance > 0.05) {
+				attrforce = -(6 * k*distance);
+				attrtheta = atan2(it->posy, it->posx);
+				// determine the x and y components of the force on the ball
+				forcex = attrforce * cos(attrtheta);
+				forcey = attrforce * sin(attrtheta);
+				// set the force and direction for the ball
+				it->force = sqrt((forcex * forcex) + (forcey * forcey));
+				it->forcetheta = atan2(forcey, forcex);
+				while (it->force > 1000) {
+					it->force = it->force / 10;
+				}
+				// set the acceleration for the ball
+				it->accx = it->force * cos(it->forcetheta) / it->mass;
+				it->accy = it->force * sin(it->forcetheta) / it->mass;
+				// set the velocity for the ball
+				it->velx = it->velx + it->accx * timestep;
+				it->vely = it->vely + it->accy * timestep;
+				// set the new position of the ball
+				it->posx = it->posx + it->velx * timestep;
+				it->posy = it->posy + it->vely * timestep;
+				double newDistance = sqrt((it->posx * it->posx) + (it->posy * it->posy));
+				if (newDistance > distance) {
+					// when goes past center, slow down a bit to make it reach center quicker
+					// and not shoot past too many times
+					it->velx = it->velx*0.9;
+					it->vely = it->vely*0.9;
+				}
+			}
+			else {
+				it->posx = 0.0;
+				it->posy = 0.0;
+			}
+		}
+	}
+	//display();
+}
+
+DynamicBall Draw::getMovingBall(int index)
+{
+	return movingButtons[index];
+}
+
+Ball Draw::getBall(int index)
+{
+	return buttons[index];
+}
+
+void Draw::changeSelection(int index)
+{
+	if (buttons[index].selected == 1) {
+		buttons[index].red = 1.0;
+		buttons[index].blue = 0.0;
+		buttons[index].selected = 0;
+	}
+	else {
+		buttons[index].red = 0.0;
+		buttons[index].blue = 1.0;
+		buttons[index].selected = 1;
+	}
+}
