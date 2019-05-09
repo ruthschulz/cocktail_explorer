@@ -241,12 +241,14 @@ void action(int ball)
 			state = INGREDIENTS;
 		}
 		else if (ball == canvas.next2) {
+			drinks.clearSelected();
 			drinks.setAllPossibleDrinks();
 			canvas.setVisibleDrinks(drinks.firstDrinkName(), drinks);
 			canvas.showDrinks(drinks.numPossibleDrinks()>0,false,'a',drinks);
 			state = DRINKS;
 		}
 		else if (ball == canvas.next4) {
+			drinks.clearSelected();
 			drinks.setAllPossibleDrinks();
 			drinks.setAlphabet();
 			canvas.showAlphabet(drinks);
